@@ -4,3 +4,4 @@ my_env/
 demo_cropimg/__pycache__
 __pycache__/
 *.pyc
+modia/images

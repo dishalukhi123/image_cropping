@@ -1,7 +1,9 @@
-from django import forms
-from .models import UserProfile
+# forms.py
 
-class ProfilePictureForm(forms.ModelForm):
+from django import forms
+from .models import ImageUpload
+
+class ImageUploadForm(forms.ModelForm):
     class Meta:
-        model = UserProfile
-        fields = ['profile_picture']
+        model = ImageUpload
+        fields = ['image']

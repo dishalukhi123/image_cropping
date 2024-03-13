@@ -1,16 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Profile Picture</title>
-</head>
-<body>
-    <h1>Upload Your Profile Picture</h1>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Upload</button>
-    </form>
-</body>
-</html>
+<!-- upload_image.html -->
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <img id="image-preview" src="#" alt="Preview" class="md-3">
+    <button type="submit">Upload</button>
+</form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+<script>
+    var input = document.getElementById('id_image');
+    var image = document.getElementById('image-preview');
+    var cropper;
+
+    input.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            image.src = e.target.result;
+            cropper = new Cropper(image, {
+                aspectRatio: 1 / 1,
+                crop: function(event) {
+                }
+            });
+        }
+        reader.readAsDataURL(file);
+        console.log('=-=-=-=-=-=-=-=-=-=',reader)
+    });
+</script>
