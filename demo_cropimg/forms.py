@@ -1,9 +1,7 @@
-# forms.py
-
 from django import forms
-from .models import ImageUpload
+from .models import CroppedImage
 
 class ImageUploadForm(forms.ModelForm):
     class Meta:
-        model = ImageUpload
-        fields = ['image']
+        model = CroppedImage
+        fields = ('file',)
