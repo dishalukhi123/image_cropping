@@ -1,11 +1,13 @@
 from django.db import models
 
-class CroppedImage(models.Model):
-    file = models.ImageField(upload_to='images/')
-    uploaded = models.DateTimeField(auto_now_add=True)
-    x = models.IntegerField(default=0)
-    y = models.IntegerField(default=0)
+class Images(models.Model):
+    image = models.ImageField(upload_to='images/')
+    square = models.ImageField(upload_to='square_images/')
+    rectangle = models.ImageField(upload_to='rectangle_images/')
 
 
     def __str__(self):
         return str(self.pk)
+    
+    class Meta:
+        db_table = 'images'
