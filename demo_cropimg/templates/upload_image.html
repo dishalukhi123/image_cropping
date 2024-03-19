@@ -22,9 +22,6 @@
 
 <body>
     <div class="container mt-3">
-        <div class="alert alert-danger" id="alert-req" hidden>
-            Please select either square or rectangle image.
-        </div>
 
         <div class="row">
             <div class="col-md-12 text-right">
@@ -49,7 +46,7 @@
                             <ul class="nav nav-tabs" id="shapeTabs" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active" id="image-tab" data-toggle="tab" href="#image" role="tab"
-                                        aria-controls="square" aria-selected="true">Image</a>
+                                        aria-controls="image" aria-selected="true">Image</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" id="square-tab" data-toggle="tab" href="#square" role="tab"
@@ -60,11 +57,12 @@
                                         role="tab" aria-controls="rectangle" aria-selected="false">Rectangle</a>
                                 </li>
                             </ul>
+                            <br />
                             <div id="alert-box"></div>
                             <div id="image-box" class="mb-3"></div>
-                            <input type="file" name="file" id="id_file" required>
-                            <input type="file" name="square" id="id_square" class="not-visible" required>
-                            <input type="file" name="rectangle" id="id_rectangle" class="not-visible" required>
+                            <input type="file" name="file" id="id_file" accept="image/*">
+                            <input type="file" name="square" id="id_square" class="not-visible">
+                            <input type="file" name="rectangle" id="id_rectangle" class="not-visible">
                     </form>
                 </div>
 
@@ -99,12 +97,12 @@
                 {% for image in images %}
                 <tr>
                     <td>{{ image.id }}</td>
-                    <td><img src="{{ image.full_image.url }}" alt="Original Image"></td>
-                    <td><img src="{{ image.square_image.url }}" alt="Square Image"></td>
-                    <td><img src="{{ image.rectangle_image.url }}" alt="Rectangle Image"></td>
+                    <td><img src="{{ image.image.url }}" alt="Original Image" style="width: 100px;"></td>
+                    <td><img src="{{ image.square.url }}" alt="Square Image" style="width: 100px;"></td>
+                    <td><img src="{{ image.rectangle.url }}" alt="Rectangle Image" style="width: 100px;"></td>
                     <td>
-                        <button type="button" class="btn btn-primary edit-btn" data-image-id="{{ image.id }}"
-                            data-toggle="modal" data-target="#uploadPictureForm">Edit</button>
+                        <button type="button" class="btn btn-primary edit-btn"
+                            data-image-id="{{ image.id }}">Edit</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -115,53 +113,65 @@
 
     <script>
         $(document).ready(function () {
-            $('#id_file').on('change', function () {
-                $("#uploadPictureForm").modal('show');
 
-                $('#id_file').on('change', function () {
-                    const file = this.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            $('#image').html(`<img src="${e.target.result}" alt="Image" style="max-width: 100%;">`);
-                        };
-                        reader.readAsDataURL(file);
+            $('#id_file').on('change', function () {
+                $("#uploadPictureForm").modal('show')
+
+            });
+
+
+            $('#id_file').on('change', function () {
+                console.log('=-=-=-=-=File changed=-=-=-=-=');
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#image').html(`<img src="${e.target.result}" alt="Image" style="max-width: 100%;">`);
+                    };
+                    reader.readAsDataURL(file);
+                    console.log('=-=-=-=-=-=-=-=-=', file);
+                }
+            });
+
+
+
+            $('#shapeTabs a').on('click', function (e) {
+                e.preventDefault();
+                $(this).tab('show');
+                const tabId = $(this).attr('href');
+                $('#image-form input[type="file"]').addClass('not-visible');
+                console.log('=-=-=-=-=-=-=-=-=-', tabId)
+                $(`${tabId}-tab input[type="file"]`).removeClass('not-visible');
+                console.log('=-=-=-=-=-=-=-=-=-', tabId)
+
+                if (tabId === '#image') {
+                    $('#id_file').removeClass('not-visible');
+                }
+
+            });
+
+            $('.edit-btn').on('click', function () {
+                const imageId = $(this).data('image-id');
+                $('#uploadPictureForm').modal('show');
+
+                const formData = new FormData($('#edit-image-form')[0]);
+
+                $.ajax({
+                    url: `/crop-image/${imageId}/`,
+                    type: 'PUT',
+                    data: formData,
+                    processData: false, 
+                    contentType: false, 
+                    success: function (response) {
+                        console.log('Image updated successfully:', response);
+                        // Optionally, update UI or perform other actions on success
+                    },
+                    error: function (error) {
+                        console.error('Error updating image:', error.responseJSON.message);
+                        // Handle error, show message to the user, etc.
                     }
                 });
-
-                $('#shapeTabs a').on('click', function (e) {
-                    e.preventDefault();
-                    $(this).tab('show');
-                    const tabId = $(this).attr('href');
-                    $('#image-form input[type="file"]').addClass('not-visible');
-                    $(`${tabId}-tab input[type="file"]`).removeClass('not-visible');
-                    validateSelection();
-                });
             });
-
-            $('#confirm-btn').on('click', function () {
-                if ($('#id_file').val() === '') {
-                    alert('Please select an image file.');
-                    return false;
-                }
-                if ($('#id_square').hasClass('not-visible') && $('#id_rectangle').hasClass('not-visible')) {
-                    $('#alert-req').text('Please select either square or rectangle image.');
-                    return false;
-                }
-                return true;
-            });
-
-            function validateSelection() {
-                const fileInput = $('#id_file');
-                const squareInput = $('#id_square');
-                const rectangleInput = $('#id_rectangle');
-
-                if (fileInput.val() === '' || (squareInput.hasClass('not-visible') && rectangleInput.hasClass('not-visible'))) {
-                    $('#confirm-btn').addClass('not-visible');
-                } else {
-                    $('#confirm-btn').removeClass('not-visible');
-                }
-            }
 
 
             const alertBox = document.getElementById('alert-box')
@@ -175,13 +185,17 @@
             const csrf = document.getElementsByName('csrfmiddlewaretoken')
 
             input.addEventListener('change', () => {
+                console.log('-=---=-==--==-=--===', input);
                 alertBox.innerHTML = ""
                 confirmBtn.classList.remove('not-visible')
                 const img_data = input.files[0]
                 const url = URL.createObjectURL(img_data)
+                console.log('=-=-=-=-=-=-=-=-=-=-=-', url);
 
-                imageBox.innerHTML = `<img src="${url}" id="image" width="600px">`
+                imageBox.innerHTML = `<img src="${url}" id="image" width="466px">`
                 var $image = $('#image')
+                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=');
+                console.log('=-=-=-=-=-=-=-=-=-', imageBox);
 
                 $image.cropper({
                     aspectRatio: aspectRatio,
@@ -193,11 +207,17 @@
                         console.log("---rotate----", event.detail.rotate);
                         console.log("---scaleX----", event.detail.scaleX);
                         console.log("---scaleY----", event.detail.scaleY);
+                        console.log('=-=-=-=-=-=-=-=-=-=', aspectRatio);
+                        console.log('=-=-=-=-=-=-=-=-=-=', image);
                     }
                 });
 
                 shapeTabs.forEach(tab => {
                     tab.addEventListener('click', function () {
+                        if (this.getAttribute('id') == 'id_file') {
+                            aspectRatio = 0;
+                        }
+
                         if (this.getAttribute('id') == 'square-tab') {
                             aspectRatio = 1;
                             console.log('=-=-=-=-=-=-=-=-=-==--==', shapeTabs);
@@ -209,6 +229,7 @@
                 });
 
                 confirmBtn.addEventListener('click', () => {
+
                     const cropper = $image.data('cropper');
                     const canvas = cropper.getCroppedCanvas();
                     if (!canvas) {
@@ -221,9 +242,9 @@
                     canvas.toBlob((blob) => {
                         const Image_upload = new FormData();
                         Image_upload.append('csrfmiddlewaretoken', csrf[0].value)
-                        Image_upload.append('image', blob, 'my-image.png');
-                        Image_upload.append('square', blob, 'my-square-image.png');
-                        Image_upload.append('rectangle', blob, 'my-rectangle-image.png');
+                        Image_upload.append('image', blob, 'upload_pictures','1','original.jpeg');
+                        Image_upload.append('square', blob, 'upload_pictures','1','Square.jpeg');
+                        Image_upload.append('rectangle', blob, 'upload_pictures','1','Rectangle.jpeg');
 
 
                         $.ajax({
@@ -235,8 +256,23 @@
                                             Successfully saved and cropped the selected image
                                          </div>`;
                                 const croppedImageUrl = URL.createObjectURL(blob);
-                                $('#cropped-image').attr('src', croppedImageUrl);
-                                $('#cropped-image-container').removeClass('not-visible');
+                                // let new_row = `
+                                //         <tr data-row-id="${image.id}">
+                                //             <td>${image.id}</td>
+                                //             <td><img src="${image.image.url}" alt="Original Image" style="width: 100px;"></td>
+                                //             <td><img src="${image.square.url}" alt="Square Image" style="width: 100px;"></td>
+                                //             <td><img src="${image.rectangle.url}" alt="Rectangle Image" style="width: 100px;"></td>
+                                //             <td>
+                                //                 <button type="button" class="btn btn-primary edit-btn" data-image-id="${image.id}">Edit</button>
+                                //             </td>
+                                //         </tr>`;
+
+                                    // $('#image-table-body').prepend(new_row);
+                                    
+                                    $('#cropped-image').attr('src', croppedImageUrl);
+                                    $('#cropped-image-container').removeClass('not-visible');
+                                    $('#uploadPictureForm').modal('hide');
+                                
                             },
                             error: function (error) {
                                 alertBox.innerHTML = `<div class="alert alert-danger" role="alert">
